@@ -1,0 +1,8 @@
+# Services added per phase:
+#   Phase 1: postgres (feature store)
+#   Phase 2: kafka, zookeeper (ingest)
+#   Phase 3: mlflow tracking server
+#   Phase 4: serving API
+#   Phase 5: prometheus, grafana (monitoring)
+
+services: {}
