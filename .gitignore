@@ -1,0 +1,10 @@
+data/
+models/
+mlruns/
+__pycache__/
+.mypy_cache/
+.ruff_cache/
+*.egg-info/
+dist/
+.env
+.claude/
