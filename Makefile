@@ -7,7 +7,7 @@ test:
 	uv run pytest tests/unit/ -q
 
 train:
-	@echo "Phase 1 not implemented yet"
+	uv run python -m fraudstream.training.train
 
 serve:
 	@echo "Phase 4 not implemented yet"
