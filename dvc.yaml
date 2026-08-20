@@ -1,0 +1,52 @@
+stages:
+  prepare:
+    cmd: uv run python -m fraudstream.training.prepare
+    deps:
+      - data/raw/paysim.csv
+      - src/fraudstream/training/prepare.py
+    params:
+      - params.yaml:
+          - split.ratio
+    outs:
+      - data/interim/train.parquet
+      - data/interim/test.parquet
+
+  featurize:
+    cmd: uv run python -m fraudstream.training.featurize
+    deps:
+      - data/interim/train.parquet
+      - data/interim/test.parquet
+      - src/fraudstream/training/featurize.py
+      - src/fraudstream/features/transforms.py
+    outs:
+      - data/processed/X_train.parquet
+      - data/processed/y_train.parquet
+      - data/processed/X_test.parquet
+      - data/processed/y_test.parquet
+
+  train:
+    cmd: uv run python -m fraudstream.training.train
+    deps:
+      - data/processed/X_train.parquet
+      - data/processed/y_train.parquet
+      - src/fraudstream/training/train.py
+    params:
+      - params.yaml:
+          - xgb.n_estimators
+          - xgb.max_depth
+          - xgb.learning_rate
+    outs:
+      - models/lr.pkl
+      - models/xgb.pkl
+
+  evaluate:
+    cmd: uv run python -m fraudstream.training.evaluate
+    deps:
+      - data/processed/X_test.parquet
+      - data/processed/y_test.parquet
+      - models/lr.pkl
+      - models/xgb.pkl
+      - src/fraudstream/training/evaluate.py
+    params:
+      - params.yaml:
+          - min_pr_auc
