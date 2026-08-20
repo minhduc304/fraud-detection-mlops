@@ -1,6 +1,9 @@
-data/
+data/raw/paysim.csv
+data/interim/
+data/processed/
 models/
 mlruns/
+mlflow.db
 __pycache__/
 .mypy_cache/
 .ruff_cache/
@@ -8,3 +11,5 @@ __pycache__/
 dist/
 .env
 .claude/
+internaldocs/
+notebooks/
