@@ -1,4 +1,4 @@
-.PHONY: lint test train serve up
+.PHONY: lint test train serve up mlflow-server repro
 
 lint:
 	uv run ruff check src/ && uv run mypy src/
@@ -14,3 +14,9 @@ serve:
 
 up:
 	docker compose up
+
+mlflow-server:
+	uv run mlflow server --backend-store-uri sqlite:///mlflow.db --default-artifact-root ./mlruns
+
+repro:
+	uv run dvc repro
