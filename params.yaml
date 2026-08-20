@@ -1,0 +1,9 @@
+split:
+  ratio: 0.8
+
+xgb:
+  n_estimators: 300
+  max_depth: 6
+  learning_rate: 0.1
+
+min_pr_auc: 0.70
