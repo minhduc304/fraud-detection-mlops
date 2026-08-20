@@ -6,13 +6,18 @@ import matplotlib.pyplot as plt
 import mlflow
 import numpy as np
 import pandas as pd
+import yaml
 from sklearn.metrics import average_precision_score, precision_recall_curve
 
-from fraudstream.training.register import load_model
+from fraudstream.training.register import load_model, promote_if_better
 
 IN_DIR = Path("data/processed")
 MODELS_DIR = Path("models")
 SCHEMA_PATH = Path("src/fraudstream/features/schema.py")
+PARAMS_PATH = Path("params.yaml")
+MODEL_NAME = "fraudstream-classifier"
+LR_ARTIFACT = "lr_model"
+XGB_ARTIFACT = "xgb_model"
 
 
 def pr_auc(y_true: pd.Series, y_score: pd.Series) -> float:
@@ -91,6 +96,17 @@ def main() -> None:
         mlflow.log_param("winner", winner["model"])
         mlflow.log_artifact(str(SCHEMA_PATH), artifact_path="schema")
         _log_pr_curve(y_test, lr_scores, xgb_scores)
+
+    params = yaml.safe_load(PARAMS_PATH.read_text())
+    run_id = (MODELS_DIR / "run_id.txt").read_text().strip()
+    winner_artifact = XGB_ARTIFACT if winner["model"] == "xgboost" else LR_ARTIFACT
+    promote_if_better(
+        run_id=run_id,
+        model_name=MODEL_NAME,
+        model_artifact_path=winner_artifact,
+        pr_auc=float(winner["pr_auc"]),
+        min_pr_auc=params["min_pr_auc"],
+    )
 
 
 if __name__ == "__main__":

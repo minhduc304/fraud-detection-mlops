@@ -3,6 +3,8 @@ import subprocess
 from pathlib import Path
 
 import mlflow
+import mlflow.sklearn
+import mlflow.xgboost
 import pandas as pd
 import yaml
 from sklearn.linear_model import LogisticRegression
@@ -68,8 +70,8 @@ def main() -> None:
         MODELS_DIR.mkdir(parents=True, exist_ok=True)
         save_model(lr, MODELS_DIR / "lr.pkl")
         save_model(xgb, MODELS_DIR / "xgb.pkl")
-        mlflow.log_artifact(str(MODELS_DIR / "lr.pkl"), artifact_path="models")
-        mlflow.log_artifact(str(MODELS_DIR / "xgb.pkl"), artifact_path="models")
+        mlflow.sklearn.log_model(lr, "lr_model")
+        mlflow.xgboost.log_model(xgb, "xgb_model")
 
         (MODELS_DIR / "run_id.txt").write_text(run.info.run_id)
         print(f"Models saved. MLflow run_id: {run.info.run_id}")
