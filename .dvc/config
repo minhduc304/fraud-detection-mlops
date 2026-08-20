@@ -1,0 +1,4 @@
+[core]
+    remote = local
+['remote "local"']
+    url = /Users/ducvu/.dvc-remote/fraudstream
