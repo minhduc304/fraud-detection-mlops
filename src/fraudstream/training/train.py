@@ -7,6 +7,7 @@ from xgboost import XGBClassifier
 
 from fraudstream.features.transforms import build_features
 from fraudstream.training.evaluate import report
+from fraudstream.training.register import save_model
 
 CSV_PATH = Path("data/raw/paysim.csv")
 
@@ -69,7 +70,12 @@ def main() -> None:
         print(f"{r['model']:<22} {r['pr_auc']:>8.4f} {r['precision_at_recall_80']:>8.4f}")
 
     winner_name = max([lr_report, xgb_report], key=lambda r: r["pr_auc"])["model"]
+    winner_model = xgb if winner_name == "xgboost" else lr
     print(f"\nWinner: {winner_name}")
+
+    model_path = Path("models/model.pkl")
+    save_model(winner_model, model_path)
+    print(f"Saved to {model_path}")
 
 
 if __name__ == "__main__":
