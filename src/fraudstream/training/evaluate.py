@@ -1,5 +1,9 @@
+"""Stage 4: evaluate models, log metrics + artifacts to existing MLflow run."""
+import tempfile
 from pathlib import Path
 
+import matplotlib.pyplot as plt
+import mlflow
 import numpy as np
 import pandas as pd
 from sklearn.metrics import average_precision_score, precision_recall_curve
@@ -8,6 +12,7 @@ from fraudstream.training.register import load_model
 
 IN_DIR = Path("data/processed")
 MODELS_DIR = Path("models")
+SCHEMA_PATH = Path("src/fraudstream/features/schema.py")
 
 
 def pr_auc(y_true: pd.Series, y_score: pd.Series) -> float:
@@ -30,7 +35,28 @@ def report(name: str, y_true: pd.Series, y_score: pd.Series) -> dict[str, str | 
     }
 
 
+def _log_pr_curve(
+    y_test: pd.Series,
+    lr_scores: pd.Series,
+    xgb_scores: pd.Series,
+) -> None:
+    fig, ax = plt.subplots(figsize=(6, 5))
+    for scores, label in [(lr_scores, "LR"), (xgb_scores, "XGBoost")]:
+        p, r, _ = precision_recall_curve(y_test, scores)
+        ax.plot(r, p, label=label)
+    ax.set_xlabel("Recall")
+    ax.set_ylabel("Precision")
+    ax.set_title("Precision-Recall Curve")
+    ax.legend()
+    with tempfile.NamedTemporaryFile(suffix=".png", delete=False) as f:
+        fig.savefig(f.name, dpi=100, bbox_inches="tight")
+        mlflow.log_artifact(f.name, artifact_path="plots")
+    plt.close(fig)
+
+
 def main() -> None:
+    run_id = (MODELS_DIR / "run_id.txt").read_text().strip()
+
     X_test = pd.read_parquet(IN_DIR / "X_test.parquet")
     y_test = pd.read_parquet(IN_DIR / "y_test.parquet")["isFraud"]
 
@@ -52,6 +78,19 @@ def main() -> None:
 
     winner = max([lr_report, xgb_report], key=lambda r: r["pr_auc"])
     print(f"\nWinner: {winner['model']}  PR-AUC: {winner['pr_auc']:.4f}")
+
+    with mlflow.start_run(run_id=run_id):
+        mlflow.log_metrics(
+            {
+                "pr_auc_lr": float(lr_report["pr_auc"]),
+                "pr_auc_xgb": float(xgb_report["pr_auc"]),
+                "precision_at_recall_80_lr": float(lr_report["precision_at_recall_80"]),
+                "precision_at_recall_80_xgb": float(xgb_report["precision_at_recall_80"]),
+            }
+        )
+        mlflow.log_param("winner", winner["model"])
+        mlflow.log_artifact(str(SCHEMA_PATH), artifact_path="schema")
+        _log_pr_curve(y_test, lr_scores, xgb_scores)
 
 
 if __name__ == "__main__":

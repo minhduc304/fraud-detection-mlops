@@ -38,6 +38,7 @@ stages:
     outs:
       - models/lr.pkl
       - models/xgb.pkl
+      - models/run_id.txt
 
   evaluate:
     cmd: uv run python -m fraudstream.training.evaluate
@@ -46,6 +47,7 @@ stages:
       - data/processed/y_test.parquet
       - models/lr.pkl
       - models/xgb.pkl
+      - models/run_id.txt
       - src/fraudstream/training/evaluate.py
     params:
       - params.yaml:
