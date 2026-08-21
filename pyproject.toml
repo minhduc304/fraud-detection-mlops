@@ -12,6 +12,8 @@ dependencies = [
     "dvc",
     "pydantic",
     "xgboost>=3.2.0",
+    "confluent-kafka[avro]",
+    "boto3",
 ]
 
 [project.optional-dependencies]
