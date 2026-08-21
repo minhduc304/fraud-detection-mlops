@@ -1,4 +1,4 @@
-.PHONY: lint test train serve up mlflow-server repro
+.PHONY: lint test train serve up mlflow-server repro ingest-up produce consume
 
 lint:
 	uv run ruff check src/ && uv run mypy src/
@@ -20,3 +20,12 @@ mlflow-server:
 
 repro:
 	uv run dvc repro
+
+ingest-up:
+	docker compose up -d zookeeper kafka schema-registry minio minio-init
+
+produce:
+	uv run python -m fraudstream.ingest.producer
+
+consume:
+	uv run python -m fraudstream.ingest.consumer
