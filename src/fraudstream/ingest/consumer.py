@@ -98,29 +98,31 @@ def main() -> None:
     )
     consumer = _build_consumer(args.bootstrap_servers, args.schema_registry_url, args.group_id)
 
+    def _flush(batch: list[dict[str, Any]]) -> None:
+        if not batch:
+            return
+        valid, dead_letter = validate_or_route(batch)
+        now = datetime.now()
+        if valid:
+            _write_parquet(s3, valid, build_partition_path(now))
+        if dead_letter:
+            _write_dead_letter(s3, dead_letter, now)
+
     buffer: list[dict[str, Any]] = []
     consumed = 0
     try:
         while args.max_messages < 0 or consumed < args.max_messages:
             msg = consumer.poll(args.poll_timeout)
             if msg is None:
-                if buffer:
-                    break
                 continue
             if msg.error():
                 continue
             buffer.append(cast(dict[str, Any], msg.value()))
             consumed += 1
             if len(buffer) >= args.batch_size:
-                break
-
-        for batch in group_into_batches(buffer, args.batch_size):
-            valid, dead_letter = validate_or_route(batch)
-            now = datetime.now()
-            if valid:
-                _write_parquet(s3, valid, build_partition_path(now))
-            if dead_letter:
-                _write_dead_letter(s3, dead_letter, now)
+                _flush(buffer)
+                buffer = []
+        _flush(buffer)
     finally:
         consumer.close()
 
