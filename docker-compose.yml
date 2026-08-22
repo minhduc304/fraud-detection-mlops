@@ -77,5 +77,45 @@ services:
       exit 0
       "
 
+  mlflow:
+    image: ghcr.io/mlflow/mlflow:v2.13.2
+    networks: [fraudstream]
+    command: >
+      mlflow server
+      --backend-store-uri sqlite:///mlflow.db
+      --default-artifact-root /mlruns
+      --host 0.0.0.0
+      --port 5000
+    ports:
+      - "5000:5000"
+    volumes:
+      - mlflow-db:/mlflow
+      - mlruns-data:/mlruns
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+
+  serving:
+    build:
+      context: .
+      dockerfile: docker/serving.Dockerfile
+    networks: [fraudstream]
+    depends_on:
+      mlflow:
+        condition: service_healthy
+    environment:
+      MLFLOW_TRACKING_URI: http://mlflow:5000
+    ports:
+      - "8000:8000"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+
 volumes:
   minio-data:
+  mlflow-db:
+  mlruns-data:
