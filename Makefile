@@ -10,7 +10,7 @@ train:
 	uv run python -m fraudstream.training.train
 
 serve:
-	@echo "Phase 4 not implemented yet"
+	uv run uvicorn fraudstream.serving.app:app --host 0.0.0.0 --port 8000
 
 up:
 	docker compose up
