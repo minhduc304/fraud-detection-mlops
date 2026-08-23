@@ -91,29 +91,18 @@ services:
     volumes:
       - mlflow-db:/mlflow
       - mlruns-data:/mlruns
-    healthcheck:
-      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:5000/')"]
-      interval: 10s
-      timeout: 5s
-      retries: 12
-
   serving:
     build:
       context: .
       dockerfile: docker/serving.Dockerfile
     networks: [fraudstream]
     depends_on:
-      mlflow:
-        condition: service_healthy
+      - mlflow
+    restart: on-failure
     environment:
       MLFLOW_TRACKING_URI: http://mlflow:5000
     ports:
       - "8000:8000"
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
-      interval: 10s
-      timeout: 5s
-      retries: 6
 
   prometheus:
     image: prom/prometheus:v2.51.2
