@@ -73,15 +73,21 @@ jobs:
           chmod +x ./kind && sudo mv ./kind /usr/local/bin/kind
       - name: Create kind cluster
         run: kind create cluster --name fraudstream
-      - name: Apply k8s manifests
-        env:
-          GIT_SHA: ${{ needs.mlflow-quality-gate.outputs.sha || github.sha }}
+      - name: Build and load image into kind
         run: |
-          # Substitute image tag in overlay and apply
-          sed "s|\${GIT_SHA}|$GIT_SHA|g" infra/k8s/overlays/dev/kustomization.yaml \
+          IMAGE="ghcr.io/minhduc304/fraudstream-serving:${{ github.sha }}"
+          docker build -f docker/serving.Dockerfile -t "$IMAGE" .
+          kind load docker-image "$IMAGE" --name fraudstream
+      - name: Apply k8s manifests
+        run: |
+          sed "s|\${GIT_SHA}|${{ github.sha }}|g" infra/k8s/overlays/dev/kustomization.yaml \
             > /tmp/kustomization.yaml
           cp /tmp/kustomization.yaml infra/k8s/overlays/dev/kustomization.yaml
           kubectl apply -k infra/k8s/overlays/dev/
+      - name: Patch imagePullPolicy to Never
+        run: |
+          kubectl patch deployment fraudstream-serving \
+            -p '{"spec":{"template":{"spec":{"containers":[{"name":"serving","imagePullPolicy":"Never"}]}}}}'
       - name: Wait for rollout
         run: kubectl rollout status deployment/fraudstream-serving --timeout=120s
       - name: Smoke test
@@ -89,7 +95,6 @@ jobs:
           kubectl port-forward svc/fraudstream-serving 8000:8000 &
           sleep 5
           curl -sf http://localhost:8000/health
-          curl -sf http://localhost:8000/ready || true
 
   promote:
     runs-on: ubuntu-latest
