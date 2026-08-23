@@ -16,4 +16,4 @@ ENV PATH="/app/.venv/bin:$PATH" \
 
 USER appuser
 EXPOSE 8000
-CMD ["uvicorn", "fraudstream.serving.app:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["/app/.venv/bin/python", "-m", "uvicorn", "fraudstream.serving.app:app", "--host", "0.0.0.0", "--port", "8000"]
