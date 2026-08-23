@@ -1,0 +1,36 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: fraudstream-serving
+  labels:
+    app: fraudstream-serving
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: fraudstream-serving
+  template:
+    metadata:
+      labels:
+        app: fraudstream-serving
+    spec:
+      containers:
+        - name: serving
+          image: ghcr.io/minhduc304/fraudstream-serving:latest
+          ports:
+            - containerPort: 8000
+          env:
+            - name: MLFLOW_TRACKING_URI
+              value: http://mlflow:5000
+          readinessProbe:
+            httpGet:
+              path: /ready
+              port: 8000
+            initialDelaySeconds: 5
+            periodSeconds: 5
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 10
+            periodSeconds: 10

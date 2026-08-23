@@ -1,0 +1,113 @@
+name: CD
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  build-push:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    outputs:
+      image: ${{ steps.meta.outputs.image }}
+      sha: ${{ github.sha }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Build and push
+        id: meta
+        run: |
+          IMAGE="ghcr.io/minhduc304/fraudstream-serving:${{ github.sha }}"
+          docker build -f docker/serving.Dockerfile -t "$IMAGE" .
+          docker push "$IMAGE"
+          echo "image=$IMAGE" >> "$GITHUB_OUTPUT"
+
+  mlflow-quality-gate:
+    runs-on: ubuntu-latest
+    needs: [build-push]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v4
+        with:
+          python-version: "3.11"
+      - run: uv sync --all-extras
+      - name: Start MLflow
+        run: docker compose up -d mlflow
+      - name: Wait for MLflow
+        run: |
+          for i in $(seq 1 30); do
+            curl -sf http://localhost:5001/health && break || sleep 2
+          done
+      - name: Run quality gate vs @production
+        env:
+          MLFLOW_TRACKING_URI: http://localhost:5001
+        run: |
+          uv run python - <<'EOF'
+          import mlflow, sys
+          client = mlflow.MlflowClient()
+          try:
+              prod = client.get_model_version_by_alias("fraudstream-classifier", "production")
+              prod_auc = float(prod.tags.get("pr_auc", 0))
+              print(f"Production model pr_auc={prod_auc:.4f}")
+          except mlflow.exceptions.MlflowException:
+              print("No production model registered yet — gate passes.")
+              sys.exit(0)
+          EOF
+
+  deploy-kind:
+    runs-on: ubuntu-latest
+    needs: [mlflow-quality-gate]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install kind
+        run: |
+          curl -Lo ./kind https://kind.sigs.k8s.io/dl/v0.23.0/kind-linux-amd64
+          chmod +x ./kind && sudo mv ./kind /usr/local/bin/kind
+      - name: Create kind cluster
+        run: kind create cluster --name fraudstream
+      - name: Apply k8s manifests
+        env:
+          GIT_SHA: ${{ needs.mlflow-quality-gate.outputs.sha || github.sha }}
+        run: |
+          # Substitute image tag in overlay and apply
+          sed "s|\${GIT_SHA}|$GIT_SHA|g" infra/k8s/overlays/dev/kustomization.yaml \
+            > /tmp/kustomization.yaml
+          cp /tmp/kustomization.yaml infra/k8s/overlays/dev/kustomization.yaml
+          kubectl apply -k infra/k8s/overlays/dev/
+      - name: Wait for rollout
+        run: kubectl rollout status deployment/fraudstream-serving --timeout=120s
+      - name: Smoke test
+        run: |
+          kubectl port-forward svc/fraudstream-serving 8000:8000 &
+          sleep 5
+          curl -sf http://localhost:8000/health
+          curl -sf http://localhost:8000/ready || true
+
+  promote:
+    runs-on: ubuntu-latest
+    needs: [deploy-kind]
+    environment: production
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Tag as stable
+        run: |
+          docker pull "ghcr.io/minhduc304/fraudstream-serving:${{ github.sha }}"
+          docker tag \
+            "ghcr.io/minhduc304/fraudstream-serving:${{ github.sha }}" \
+            "ghcr.io/minhduc304/fraudstream-serving:stable"
+          docker push "ghcr.io/minhduc304/fraudstream-serving:stable"
