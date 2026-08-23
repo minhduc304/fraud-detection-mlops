@@ -1,10 +1,10 @@
-FROM python:3.11-slim AS builder
+FROM python:3.11-slim-bookworm AS builder
 WORKDIR /build
 RUN pip install uv
 COPY pyproject.toml uv.lock ./
 RUN uv sync --no-dev --no-install-project
 
-FROM python:3.11-slim
+FROM python:3.11-slim-bookworm
 WORKDIR /app
 RUN adduser --disabled-password --gecos "" appuser
 
