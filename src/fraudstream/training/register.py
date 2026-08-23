@@ -44,7 +44,9 @@ def promote_if_better(
 
     if should_promote:
         client.set_registered_model_alias(model_name, "staging", mv.version)
-        print(f"Promoted version {mv.version} to @staging  (pr_auc={pr_auc:.4f})")
+        client.set_registered_model_alias(model_name, "champion", mv.version)
+        client.set_registered_model_alias(model_name, "production", mv.version)
+        print(f"Promoted v{mv.version} to @staging/@champion/@production (pr_auc={pr_auc:.4f})")
     else:
         print(f"Not promoted. pr_auc={pr_auc:.4f}")
 

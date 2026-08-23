@@ -46,9 +46,11 @@ def test_floor_passes_first_run(MockClient: MagicMock, mock_register: MagicMock)
     result = promote_if_better(RUN_ID, MODEL_NAME, ARTIFACT, pr_auc=0.85, min_pr_auc=MIN_PR_AUC)
 
     assert result is True
-    MockClient.return_value.set_registered_model_alias.assert_called_once_with(
-        MODEL_NAME, "staging", "1"
-    )
+    calls = MockClient.return_value.set_registered_model_alias.call_args_list
+    aliases_set = {c.args[1] for c in calls}
+    assert aliases_set == {"staging", "champion", "production"}
+    for alias in ("staging", "champion", "production"):
+        MockClient.return_value.set_registered_model_alias.assert_any_call(MODEL_NAME, alias, "1")
 
 
 @patch("fraudstream.training.register.mlflow.register_model")
@@ -60,9 +62,11 @@ def test_beats_champion_promotes(MockClient: MagicMock, mock_register: MagicMock
     result = promote_if_better(RUN_ID, MODEL_NAME, ARTIFACT, pr_auc=0.90, min_pr_auc=MIN_PR_AUC)
 
     assert result is True
-    MockClient.return_value.set_registered_model_alias.assert_called_once_with(
-        MODEL_NAME, "staging", "2"
-    )
+    calls = MockClient.return_value.set_registered_model_alias.call_args_list
+    aliases_set = {c.args[1] for c in calls}
+    assert aliases_set == {"staging", "champion", "production"}
+    for alias in ("staging", "champion", "production"):
+        MockClient.return_value.set_registered_model_alias.assert_any_call(MODEL_NAME, alias, "2")
 
 
 @patch("fraudstream.training.register.mlflow.register_model")
