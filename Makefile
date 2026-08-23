@@ -1,4 +1,4 @@
-.PHONY: lint test train serve up mlflow-server repro ingest-up produce consume airflow-up
+.PHONY: lint test train serve up mlflow-server repro ingest-up produce consume airflow-up update-quality-baseline
 
 lint:
 	uv run ruff check src/ && uv run mypy src/
@@ -33,3 +33,7 @@ consume:
 airflow-up:
 	docker compose up -d mlflow airflow-init
 	docker compose up -d airflow-webserver airflow-scheduler
+
+# Run after intentional model improvements or features/schema.py changes.
+update-quality-baseline:
+	uv run python scripts/update_quality_baseline.py
