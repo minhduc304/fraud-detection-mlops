@@ -1,4 +1,4 @@
-.PHONY: lint test train serve up mlflow-server repro ingest-up produce consume
+.PHONY: lint test train serve up mlflow-server repro ingest-up produce consume airflow-up
 
 lint:
 	uv run ruff check src/ && uv run mypy src/
@@ -29,3 +29,7 @@ produce:
 
 consume:
 	uv run python -m fraudstream.ingest.consumer
+
+airflow-up:
+	docker compose up -d mlflow airflow-init
+	docker compose up -d airflow-webserver airflow-scheduler
