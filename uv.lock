@@ -1452,6 +1452,7 @@ dependencies = [
 [package.optional-dependencies]
 dev = [
     { name = "black" },
+    { name = "httpx" },
     { name = "mypy" },
     { name = "pre-commit" },
     { name = "pytest" },
@@ -1465,6 +1466,7 @@ requires-dist = [
     { name = "confluent-kafka", extras = ["avro"] },
     { name = "dvc" },
     { name = "fastapi" },
+    { name = "httpx", marker = "extra == 'dev'" },
     { name = "lightgbm" },
     { name = "mlflow" },
     { name = "mypy", marker = "extra == 'dev'" },
