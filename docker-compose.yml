@@ -141,7 +141,10 @@ services:
     volumes:
       - ./airflow/dags:/opt/airflow/dags:ro
       - airflow-db:/opt/airflow
-    command: db migrate
+    command: >
+      bash -c "airflow db migrate &&
+      airflow users create --username airflow --password airflow
+      --firstname Air --lastname Flow --role Admin --email admin@fraudstream.local || true"
     depends_on:
       - mlflow
 
