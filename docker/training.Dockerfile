@@ -10,8 +10,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends git && rm -rf /
 
 COPY --from=builder /build/.venv /app/.venv
 COPY src/ /app/src/
+COPY params.yaml /app/params.yaml
 
+ARG GIT_SHA=unknown
 ENV PATH="/app/.venv/bin:$PATH" \
-    PYTHONPATH="/app/src"
+    PYTHONPATH="/app/src" \
+    GIT_SHA=${GIT_SHA}
 
 CMD ["python", "-m", "fraudstream.training.train"]

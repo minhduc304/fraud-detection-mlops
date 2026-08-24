@@ -17,7 +17,7 @@ spec:
     spec:
       containers:
         - name: mlflow
-          image: ghcr.io/mlflow/mlflow:v2.13.2
+          image: ghcr.io/mlflow/mlflow:v3.15.1
           command:
             - mlflow
             - server
@@ -29,6 +29,8 @@ spec:
             - 0.0.0.0
             - --port
             - "5000"
+            - --allowed-hosts
+            - "mlflow.fraudstream.svc.cluster.local:*,localhost:*"
           ports:
             - containerPort: 5000
           volumeMounts:

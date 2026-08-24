@@ -10,3 +10,5 @@ nodes:
         containerPath: /mnt/mlruns
       - hostPath: ./airflow/dags
         containerPath: /mnt/dags
+      - hostPath: ./models
+        containerPath: /mnt/models
