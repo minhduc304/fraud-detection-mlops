@@ -1,4 +1,4 @@
-.PHONY: lint test train serve up mlflow-server repro ingest-up produce consume airflow-up update-quality-baseline platform-up platform-down
+.PHONY: lint test train serve up mlflow-server repro ingest-up produce consume update-quality-baseline platform-up platform-down
 
 lint:
 	uv run ruff check src/ && uv run mypy src/
@@ -30,11 +30,8 @@ produce:
 consume:
 	uv run python -m fraudstream.ingest.consumer
 
-airflow-up:
-	docker compose up -d mlflow airflow-init
-	docker compose up -d airflow-webserver airflow-scheduler
-
 # Persistent local kind cluster hosting in-cluster Airflow + mlflow (Phase 7).
+# Replaces the old compose-based `airflow-up` target — Airflow now runs in-cluster.
 # Separate from CD's throwaway kind cluster used only for serving smoke tests.
 platform-up:
 	kind get clusters | grep -q '^fraudstream-platform$$' || kind create cluster --config infra/kind/platform-cluster.yaml
