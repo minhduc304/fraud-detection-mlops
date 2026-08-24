@@ -1,0 +1,12 @@
+kind: Cluster
+apiVersion: kind.x-k8s.io/v1alpha4
+name: fraudstream-platform
+nodes:
+  - role: control-plane
+    extraMounts:
+      - hostPath: ./data
+        containerPath: /mnt/data
+      - hostPath: ./mlruns
+        containerPath: /mnt/mlruns
+      - hostPath: ./airflow/dags
+        containerPath: /mnt/dags
