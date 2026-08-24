@@ -1,0 +1,64 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: airflow-webserver
+  namespace: fraudstream
+  labels:
+    app: airflow-webserver
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: airflow-webserver
+  template:
+    metadata:
+      labels:
+        app: airflow-webserver
+    spec:
+      initContainers:
+        - name: airflow-init
+          image: fraudstream-airflow:local
+          imagePullPolicy: Never
+          env: &airflow-env
+            - name: AIRFLOW__CORE__EXECUTOR
+              value: SequentialExecutor
+            - name: AIRFLOW__DATABASE__SQL_ALCHEMY_CONN
+              value: sqlite:////opt/airflow/airflow.db
+            - name: AIRFLOW__CORE__LOAD_EXAMPLES
+              value: "false"
+            - name: AIRFLOW__WEBSERVER__SECRET_KEY
+              value: fraudstream-dev
+            - name: MLFLOW_TRACKING_URI
+              value: http://mlflow.fraudstream.svc.cluster.local:5000
+          command:
+            - bash
+            - -c
+            - >
+              airflow db migrate &&
+              airflow users create --username airflow --password airflow
+              --firstname Air --lastname Flow --role Admin --email admin@fraudstream.local || true
+          volumeMounts:
+            - name: airflow-db
+              mountPath: /opt/airflow
+      containers:
+        - name: webserver
+          image: fraudstream-airflow:local
+          imagePullPolicy: Never
+          env: *airflow-env
+          command: ["airflow", "webserver"]
+          ports:
+            - containerPort: 8080
+          volumeMounts:
+            - name: airflow-db
+              mountPath: /opt/airflow
+            - name: dags
+              mountPath: /opt/airflow/dags
+              readOnly: true
+      volumes:
+        - name: airflow-db
+          persistentVolumeClaim:
+            claimName: airflow-db
+        - name: dags
+          hostPath:
+            path: /mnt/dags
+            type: Directory
