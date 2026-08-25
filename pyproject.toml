@@ -15,6 +15,7 @@ dependencies = [
     "confluent-kafka[avro]",
     "boto3",
     "prometheus-client",
+    "httpx",
 ]
 
 [project.optional-dependencies]
@@ -24,7 +25,6 @@ dev = [
     "black",
     "mypy",
     "pre-commit",
-    "httpx",
 ]
 
 [build-system]

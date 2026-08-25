@@ -126,12 +126,24 @@ services:
   alertmanager:
     image: prom/alertmanager:v0.27.0
     networks: [fraudstream]
+    depends_on:
+      - alert-webhook
     command:
       - --config.file=/etc/alertmanager/alertmanager.yml
     volumes:
       - ./alertmanager/alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro
     ports:
       - "9093:9093"
+
+  alert-webhook:
+    build:
+      context: .
+      dockerfile: docker/serving.Dockerfile
+    networks: [fraudstream]
+    restart: on-failure
+    command: ["/app/.venv/bin/python", "-m", "uvicorn", "fraudstream.monitoring.alert_webhook:app", "--host", "0.0.0.0", "--port", "8001"]
+    ports:
+      - "8001:8001"
 
   grafana:
     image: grafana/grafana:10.4.2
