@@ -1,4 +1,5 @@
 """Stage 3: train LR + XGBoost from processed features, save models + start MLflow run."""
+import os
 import subprocess
 from pathlib import Path
 
@@ -25,6 +26,9 @@ def _data_hash() -> str:
 
 
 def _git_sha() -> str:
+    env_sha = os.environ.get("GIT_SHA")
+    if env_sha:
+        return env_sha
     return subprocess.check_output(["git", "rev-parse", "HEAD"]).decode().strip()
 
 

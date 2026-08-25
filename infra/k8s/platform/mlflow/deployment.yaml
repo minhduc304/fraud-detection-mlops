@@ -1,0 +1,43 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mlflow
+  namespace: fraudstream
+  labels:
+    app: mlflow
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mlflow
+  template:
+    metadata:
+      labels:
+        app: mlflow
+    spec:
+      containers:
+        - name: mlflow
+          image: ghcr.io/mlflow/mlflow:v3.15.1
+          command:
+            - mlflow
+            - server
+            - --backend-store-uri
+            - sqlite:////mlruns/mlflow.db
+            - --default-artifact-root
+            - /mlruns
+            - --host
+            - 0.0.0.0
+            - --port
+            - "5000"
+            - --allowed-hosts
+            - "mlflow.fraudstream.svc.cluster.local:*,localhost:*"
+          ports:
+            - containerPort: 5000
+          volumeMounts:
+            - name: mlruns
+              mountPath: /mlruns
+      volumes:
+        - name: mlruns
+          hostPath:
+            path: /mnt/mlruns
+            type: Directory

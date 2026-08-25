@@ -42,18 +42,6 @@ def build_features_task() -> None:
     log.info("Features built: %d rows → %s", len(features), out_path)
 
 
-def train_task() -> None:
-    from fraudstream.training.train import main as train_main
-
-    train_main()
-
-
-def evaluate_and_register_task() -> None:
-    from fraudstream.training.evaluate import main as eval_main
-
-    eval_main()
-
-
 def notify_task(**context: object) -> None:
     ti = context.get("ti")
     log.info("Retrain complete. Task instance: %s", ti)
@@ -62,10 +50,28 @@ def notify_task(**context: object) -> None:
 try:
     from datetime import datetime
 
+    from kubernetes.client import models as k8s
+
     from airflow import DAG, Dataset
     from airflow.operators.python import PythonOperator
+    from airflow.providers.cncf.kubernetes.operators.pod import KubernetesPodOperator
 
     _dataset = Dataset(DATASET_URI)
+
+    _training_volumes = [
+        k8s.V1Volume(
+            name="data",
+            host_path=k8s.V1HostPathVolumeSource(path="/mnt/data", type="Directory"),
+        ),
+        k8s.V1Volume(
+            name="models",
+            host_path=k8s.V1HostPathVolumeSource(path="/mnt/models", type="Directory"),
+        ),
+    ]
+    _training_volume_mounts = [
+        k8s.V1VolumeMount(name="data", mount_path="/app/data"),
+        k8s.V1VolumeMount(name="models", mount_path="/app/models"),
+    ]
 
     with DAG(
         dag_id="retrain_dag",
@@ -92,14 +98,34 @@ try:
             python_callable=build_features_task,
         )
 
-        train = PythonOperator(
+        train = KubernetesPodOperator(
             task_id="train",
-            python_callable=train_task,
+            namespace="fraudstream",
+            name="retrain-train",
+            image="fraudstream-training:local",
+            image_pull_policy="Never",
+            cmds=["python", "-m", "fraudstream.training.train"],
+            service_account_name="airflow",
+            volumes=_training_volumes,
+            volume_mounts=_training_volume_mounts,
+            env_vars={"MLFLOW_TRACKING_URI": "http://mlflow.fraudstream.svc.cluster.local:5000"},
+            is_delete_operator_pod=True,
+            get_logs=True,
         )
 
-        evaluate = PythonOperator(
+        evaluate = KubernetesPodOperator(
             task_id="evaluate_and_register",
-            python_callable=evaluate_and_register_task,
+            namespace="fraudstream",
+            name="retrain-evaluate",
+            image="fraudstream-training:local",
+            image_pull_policy="Never",
+            cmds=["python", "-m", "fraudstream.training.evaluate"],
+            service_account_name="airflow",
+            volumes=_training_volumes,
+            volume_mounts=_training_volume_mounts,
+            env_vars={"MLFLOW_TRACKING_URI": "http://mlflow.fraudstream.svc.cluster.local:5000"},
+            is_delete_operator_pod=True,
+            get_logs=True,
         )
 
         notify = PythonOperator(
