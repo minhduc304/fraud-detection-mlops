@@ -1,9 +1,15 @@
+import io
 import pickle
 from pathlib import Path
 from typing import Any
 
+import boto3
 import mlflow
 import mlflow.exceptions
+import numpy as np
+import pandas as pd
+
+BUCKET = "fraudstream-lake"
 
 
 def save_model(model: Any, path: Path) -> None:
@@ -51,3 +57,34 @@ def promote_if_better(
         print(f"Not promoted. pr_auc={pr_auc:.4f}")
 
     return should_promote
+
+
+def write_reference_baseline(
+    scores: pd.Series,
+    features_df: pd.DataFrame,
+    s3: Any = None,
+    minio_endpoint: str = "http://localhost:9000",
+    minio_access_key: str = "minioadmin",
+    minio_secret_key: str = "minioadmin",
+) -> None:
+    """Write the champion's evaluation-set score/feature distributions as the drift reference."""
+    s3 = s3 or boto3.client(
+        "s3",
+        endpoint_url=minio_endpoint,
+        aws_access_key_id=minio_access_key,
+        aws_secret_access_key=minio_secret_key,
+    )
+
+    score_buf = io.BytesIO()
+    np.save(score_buf, scores.to_numpy())
+    s3.put_object(
+        Bucket=BUCKET, Key="reference/schema_v1/score_reference.npy", Body=score_buf.getvalue()
+    )
+
+    features_buf = io.BytesIO()
+    features_df.to_parquet(features_buf, index=False)
+    s3.put_object(
+        Bucket=BUCKET,
+        Key="reference/schema_v1/features_reference.parquet",
+        Body=features_buf.getvalue(),
+    )

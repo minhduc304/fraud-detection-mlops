@@ -9,7 +9,8 @@ import pandas as pd
 import yaml
 from sklearn.metrics import average_precision_score, precision_recall_curve
 
-from fraudstream.training.register import load_model, promote_if_better
+from fraudstream.features.schema import FEATURE_COLUMNS
+from fraudstream.training.register import load_model, promote_if_better, write_reference_baseline
 
 IN_DIR = Path("data/processed")
 MODELS_DIR = Path("models")
@@ -100,13 +101,16 @@ def main() -> None:
     params = yaml.safe_load(PARAMS_PATH.read_text())
     run_id = (MODELS_DIR / "run_id.txt").read_text().strip()
     winner_artifact = XGB_ARTIFACT if winner["model"] == "xgboost" else LR_ARTIFACT
-    promote_if_better(
+    winner_scores = xgb_scores if winner["model"] == "xgboost" else lr_scores
+    promoted = promote_if_better(
         run_id=run_id,
         model_name=MODEL_NAME,
         model_artifact_path=winner_artifact,
         pr_auc=float(winner["pr_auc"]),
         min_pr_auc=params["min_pr_auc"],
     )
+    if promoted:
+        write_reference_baseline(winner_scores, X_test[FEATURE_COLUMNS])
 
 
 if __name__ == "__main__":
