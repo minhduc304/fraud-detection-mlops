@@ -107,12 +107,31 @@ services:
   prometheus:
     image: prom/prometheus:v2.51.2
     networks: [fraudstream]
+    depends_on:
+      - alertmanager
     command:
       - --config.file=/etc/prometheus/prometheus.yml
     volumes:
       - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./prometheus/alert_rules.yml:/etc/prometheus/alert_rules.yml:ro
     ports:
       - "9090:9090"
+
+  pushgateway:
+    image: prom/pushgateway:v1.9.0
+    networks: [fraudstream]
+    ports:
+      - "9091:9091"
+
+  alertmanager:
+    image: prom/alertmanager:v0.27.0
+    networks: [fraudstream]
+    command:
+      - --config.file=/etc/alertmanager/alertmanager.yml
+    volumes:
+      - ./alertmanager/alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro
+    ports:
+      - "9093:9093"
 
   grafana:
     image: grafana/grafana:10.4.2

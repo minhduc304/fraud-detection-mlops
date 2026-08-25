@@ -1,0 +1,10 @@
+groups:
+  - name: fraudstream-drift
+    rules:
+      - alert: ScoreDriftHigh
+        expr: fraud_drift_psi{feature="score"} > 0.2
+        for: 1m # dev: short window for demoability; prod would use 15m+
+        labels:
+          severity: warning
+        annotations:
+          summary: "Fraud score distribution has drifted (PSI={{ $value }})"

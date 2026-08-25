@@ -1,0 +1,11 @@
+route:
+  receiver: retrain-webhook
+  group_wait: 10s
+  group_interval: 1m
+  repeat_interval: 1h
+
+receivers:
+  - name: retrain-webhook
+    webhook_configs:
+      - url: http://alert-webhook:8001/alert
+        send_resolved: false
