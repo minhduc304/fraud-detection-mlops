@@ -2,24 +2,38 @@
 
 Publishes Airflow Dataset: s3://fraudstream-lake/features/training/
 """
+import io
 import logging
-from pathlib import Path
+import os
+from typing import Any
+
+import boto3
+import pandas as pd
 
 log = logging.getLogger(__name__)
 
 DATASET_URI = "s3://fraudstream-lake/features/training/"
+BUCKET = "fraudstream-lake"
 
 
-def check_data_partition(base_path: str, partition: str, min_rows: int = 1000) -> None:
-    """Assert yesterday's partition dir exists in base_path and has >= min_rows rows."""
-    partition_dir = Path(base_path) / partition
-    if not partition_dir.exists():
-        raise FileNotFoundError(f"Partition not found: {partition_dir}")
+def check_data_partition(bucket: str, partition: str, min_rows: int = 1000, s3: Any = None) -> None:
+    """Assert dt=<partition> has >= min_rows rows archived under raw/transactions/ in S3."""
+    s3 = s3 or boto3.client(
+        "s3",
+        endpoint_url=os.environ.get("MINIO_ENDPOINT", "http://minio:9000"),
+        aws_access_key_id="minioadmin",
+        aws_secret_access_key="minioadmin",
+    )
+    prefix = f"raw/transactions/dt={partition}/"
+    resp = s3.list_objects_v2(Bucket=bucket, Prefix=prefix)
+    contents = resp.get("Contents", [])
+    if not contents:
+        raise FileNotFoundError(f"Partition not found: s3://{bucket}/{prefix}")
 
     row_count = 0
-    for csv_file in partition_dir.glob("*.csv"):
-        with open(csv_file) as f:
-            row_count += sum(1 for _ in f) - 1  # subtract header
+    for obj in contents:
+        body = s3.get_object(Bucket=bucket, Key=obj["Key"])["Body"].read()
+        row_count += len(pd.read_parquet(io.BytesIO(body)))
 
     if row_count < min_rows:
         raise ValueError(f"Partition {partition} row count {row_count} < {min_rows}")
@@ -86,7 +100,7 @@ try:
             task_id="data_quality_check",
             python_callable=check_data_partition,
             op_kwargs={
-                "base_path": "s3://fraudstream-lake/raw/",
+                "bucket": BUCKET,
                 "partition": yesterday,
                 "min_rows": 1000,
             },

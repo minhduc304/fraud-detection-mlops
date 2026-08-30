@@ -1,39 +1,44 @@
 """Unit tests for retrain DAG task callables (no Airflow runtime needed)."""
-import json
-from pathlib import Path
-from unittest.mock import MagicMock, patch
+import io
+from unittest.mock import MagicMock
 
 import pandas as pd
 import pytest
 
 
-def test_check_data_partition_exists(tmp_path: Path) -> None:
+def _parquet_body(n_rows: int) -> bytes:
+    df = pd.DataFrame({"a": range(n_rows), "b": range(n_rows)})
+    buf = io.BytesIO()
+    df.to_parquet(buf, index=False)
+    return buf.getvalue()
+
+
+def test_check_data_partition_exists() -> None:
     from airflow.dags.retrain_dag import check_data_partition
 
-    # Should not raise when partition dir exists with enough rows
-    partition_dir = tmp_path / "2024-01-01"
-    partition_dir.mkdir()
-    (partition_dir / "data.csv").write_text(
-        "a,b\n" + "\n".join(f"{i},{i}" for i in range(1001))
-    )
-    check_data_partition(str(tmp_path), "2024-01-01", min_rows=1000)
+    s3 = MagicMock()
+    s3.list_objects_v2.return_value = {"Contents": [{"Key": "raw/transactions/dt=2024-01-01/hour=00/part-1.parquet"}]}
+    s3.get_object.return_value = {"Body": MagicMock(read=lambda: _parquet_body(1001))}
+    check_data_partition("fraudstream-lake", "2024-01-01", min_rows=1000, s3=s3)
 
 
-def test_check_data_partition_missing_raises(tmp_path: Path) -> None:
+def test_check_data_partition_missing_raises() -> None:
     from airflow.dags.retrain_dag import check_data_partition
 
+    s3 = MagicMock()
+    s3.list_objects_v2.return_value = {}
     with pytest.raises(FileNotFoundError):
-        check_data_partition(str(tmp_path), "2024-01-01", min_rows=1000)
+        check_data_partition("fraudstream-lake", "2024-01-01", min_rows=1000, s3=s3)
 
 
-def test_check_data_partition_insufficient_rows_raises(tmp_path: Path) -> None:
+def test_check_data_partition_insufficient_rows_raises() -> None:
     from airflow.dags.retrain_dag import check_data_partition
 
-    partition_dir = tmp_path / "2024-01-01"
-    partition_dir.mkdir()
-    (partition_dir / "data.csv").write_text("a,b\n1,2\n3,4")
+    s3 = MagicMock()
+    s3.list_objects_v2.return_value = {"Contents": [{"Key": "raw/transactions/dt=2024-01-01/hour=00/part-1.parquet"}]}
+    s3.get_object.return_value = {"Body": MagicMock(read=lambda: _parquet_body(2))}
     with pytest.raises(ValueError, match="row count"):
-        check_data_partition(str(tmp_path), "2024-01-01", min_rows=1000)
+        check_data_partition("fraudstream-lake", "2024-01-01", min_rows=1000, s3=s3)
 
 
 def test_compute_psi_identical_distributions() -> None:
