@@ -41,21 +41,6 @@ def check_data_partition(bucket: str, partition: str, min_rows: int = 1000, s3: 
     log.info("Data check passed: partition=%s rows=%d", partition, row_count)
 
 
-def build_features_task() -> None:
-    from fraudstream.features.transforms import build_features
-    import pandas as pd
-    from pathlib import Path
-
-    raw_path = Path("data/raw/paysim.csv")
-    out_path = Path("data/processed/features.parquet")
-    out_path.parent.mkdir(parents=True, exist_ok=True)
-
-    df = pd.read_csv(raw_path)
-    features = build_features(df)
-    features.to_parquet(out_path, index=False)
-    log.info("Features built: %d rows → %s", len(features), out_path)
-
-
 def notify_task(**context: object) -> None:
     ti = context.get("ti")
     log.info("Retrain complete. Task instance: %s", ti)
@@ -107,9 +92,18 @@ try:
             outlets=[_dataset],
         )
 
-        feature_build = PythonOperator(
+        feature_build = KubernetesPodOperator(
             task_id="feature_build",
-            python_callable=build_features_task,
+            namespace="fraudstream",
+            name="retrain-feature-build",
+            image="fraudstream-training:local",
+            image_pull_policy="Never",
+            cmds=["python", "-m", "fraudstream.training.build_features_retrain"],
+            service_account_name="airflow",
+            volumes=_training_volumes,
+            volume_mounts=_training_volume_mounts,
+            is_delete_operator_pod=True,
+            get_logs=True,
         )
 
         train = KubernetesPodOperator(
