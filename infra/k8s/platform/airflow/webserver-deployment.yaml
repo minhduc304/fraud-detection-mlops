@@ -28,8 +28,14 @@ spec:
               value: "false"
             - name: AIRFLOW__WEBSERVER__SECRET_KEY
               value: fraudstream-dev
+            - name: AIRFLOW__API__AUTH_BACKENDS
+              value: airflow.api.auth.backend.basic_auth
             - name: MLFLOW_TRACKING_URI
               value: http://mlflow.fraudstream.svc.cluster.local:5000
+            - name: MINIO_ENDPOINT
+              value: http://host.docker.internal:9000
+            - name: PUSHGATEWAY_URL
+              value: http://host.docker.internal:9091
           command:
             - bash
             - -c

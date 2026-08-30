@@ -5,6 +5,7 @@ Sustained PSI breach fires an Alertmanager alert (Phase 8, prometheus/alert_rule
 """
 import io
 import logging
+import os
 from typing import Any
 
 import boto3
@@ -20,10 +21,10 @@ log = logging.getLogger(__name__)
 BUCKET = "fraudstream-lake"
 REFERENCE_PREFIX = "reference/schema_v1/"
 DATASET_URI = "s3://fraudstream-lake/features/training/"
-MINIO_ENDPOINT = "http://minio:9000"
+MINIO_ENDPOINT = os.environ.get("MINIO_ENDPOINT", "http://minio:9000")
 MINIO_ACCESS_KEY = "minioadmin"
 MINIO_SECRET_KEY = "minioadmin"
-PUSHGATEWAY_URL = "http://pushgateway:9091"
+PUSHGATEWAY_URL = os.environ.get("PUSHGATEWAY_URL", "http://pushgateway:9091")
 
 
 def log_psi_result(psi: float, threshold: float = PSI_THRESHOLD) -> None:

@@ -96,11 +96,12 @@ services:
       context: .
       dockerfile: docker/serving.Dockerfile
     networks: [fraudstream]
-    depends_on:
-      - mlflow
     restart: on-failure
     environment:
-      MLFLOW_TRACKING_URI: http://mlflow:5000
+      MLFLOW_TRACKING_URI: http://host.docker.internal:30500
+      MINIO_ENDPOINT: http://minio:9000
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     ports:
       - "8000:8000"
 
@@ -141,6 +142,10 @@ services:
       dockerfile: docker/alert_webhook.Dockerfile
     networks: [fraudstream]
     restart: on-failure
+    environment:
+      AIRFLOW_URL: http://host.docker.internal:30800
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     ports:
       - "8001:8001"
 

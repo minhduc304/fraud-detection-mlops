@@ -108,7 +108,10 @@ try:
             service_account_name="airflow",
             volumes=_training_volumes,
             volume_mounts=_training_volume_mounts,
-            env_vars={"MLFLOW_TRACKING_URI": "http://mlflow.fraudstream.svc.cluster.local:5000"},
+            env_vars={
+                "MLFLOW_TRACKING_URI": "http://mlflow.fraudstream.svc.cluster.local:5000",
+                "MINIO_ENDPOINT": "http://host.docker.internal:9000",
+            },
             is_delete_operator_pod=True,
             get_logs=True,
         )
@@ -123,7 +126,10 @@ try:
             service_account_name="airflow",
             volumes=_training_volumes,
             volume_mounts=_training_volume_mounts,
-            env_vars={"MLFLOW_TRACKING_URI": "http://mlflow.fraudstream.svc.cluster.local:5000"},
+            env_vars={
+                "MLFLOW_TRACKING_URI": "http://mlflow.fraudstream.svc.cluster.local:5000",
+                "MINIO_ENDPOINT": "http://host.docker.internal:9000",
+            },
             is_delete_operator_pod=True,
             get_logs=True,
         )

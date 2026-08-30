@@ -1,4 +1,5 @@
 import io
+import os
 import pickle
 from pathlib import Path
 from typing import Any
@@ -63,14 +64,14 @@ def write_reference_baseline(
     scores: pd.Series,
     features_df: pd.DataFrame,
     s3: Any = None,
-    minio_endpoint: str = "http://localhost:9000",
+    minio_endpoint: str | None = None,
     minio_access_key: str = "minioadmin",
     minio_secret_key: str = "minioadmin",
 ) -> None:
     """Write the champion's evaluation-set score/feature distributions as the drift reference."""
     s3 = s3 or boto3.client(
         "s3",
-        endpoint_url=minio_endpoint,
+        endpoint_url=minio_endpoint or os.environ.get("MINIO_ENDPOINT", "http://localhost:9000"),
         aws_access_key_id=minio_access_key,
         aws_secret_access_key=minio_secret_key,
     )

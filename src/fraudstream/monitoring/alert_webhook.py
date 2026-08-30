@@ -4,6 +4,7 @@ Alertmanager's alert JSON doesn't match Airflow's dagRuns request schema, so thi
 service sits between them. On any firing alert in the batch, triggers one
 retrain_dag run (not one per alert — Alertmanager already groups related alerts).
 """
+import os
 import uuid
 from datetime import UTC, datetime
 from typing import Any
@@ -11,7 +12,7 @@ from typing import Any
 import httpx
 from fastapi import FastAPI
 
-AIRFLOW_URL = "http://airflow-webserver:8080"
+AIRFLOW_URL = os.environ.get("AIRFLOW_URL", "http://airflow-webserver:8080")
 AIRFLOW_AUTH = ("airflow", "airflow")
 
 

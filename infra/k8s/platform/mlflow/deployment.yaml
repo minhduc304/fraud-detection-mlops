@@ -24,13 +24,16 @@ spec:
             - --backend-store-uri
             - sqlite:////mlruns/mlflow.db
             - --default-artifact-root
+            - mlflow-artifacts:/
+            - --artifacts-destination
             - /mlruns
+            - --serve-artifacts
             - --host
             - 0.0.0.0
             - --port
             - "5000"
             - --allowed-hosts
-            - "mlflow.fraudstream.svc.cluster.local:*,localhost:*"
+            - "mlflow.fraudstream.svc.cluster.local:*,localhost:*,host.docker.internal:*"
           ports:
             - containerPort: 5000
           volumeMounts:

@@ -1,4 +1,5 @@
 import io
+import os
 import threading
 import uuid
 from datetime import datetime
@@ -16,13 +17,13 @@ class PredictionLogger:
         s3: Any = None,
         flush_size: int = 100,
         flush_interval: float = 60.0,
-        minio_endpoint: str = "http://localhost:9000",
+        minio_endpoint: str | None = None,
         minio_access_key: str = "minioadmin",
         minio_secret_key: str = "minioadmin",
     ) -> None:
         self._s3 = s3 or boto3.client(
             "s3",
-            endpoint_url=minio_endpoint,
+            endpoint_url=minio_endpoint or os.environ.get("MINIO_ENDPOINT", "http://localhost:9000"),
             aws_access_key_id=minio_access_key,
             aws_secret_access_key=minio_secret_key,
         )
