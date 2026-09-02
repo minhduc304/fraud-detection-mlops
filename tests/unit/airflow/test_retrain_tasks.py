@@ -41,6 +41,19 @@ def test_check_data_partition_insufficient_rows_raises() -> None:
         check_data_partition("fraudstream-lake", "2024-01-01", min_rows=1000, s3=s3)
 
 
+def test_guaranteed_memory_request_equals_limit() -> None:
+    from airflow.dags.retrain_dag import guaranteed_memory
+
+    res = guaranteed_memory("3Gi")
+    assert res["requests"]["memory"] == res["limits"]["memory"] == "3Gi"
+
+
+def test_training_pod_memory_is_set() -> None:
+    from airflow.dags.retrain_dag import EVALUATE_POD_MEMORY, TRAIN_POD_MEMORY
+
+    assert TRAIN_POD_MEMORY and EVALUATE_POD_MEMORY
+
+
 def test_compute_psi_identical_distributions() -> None:
     from airflow.dags.drift_check_dag import compute_psi
 
