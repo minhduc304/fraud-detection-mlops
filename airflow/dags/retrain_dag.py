@@ -15,15 +15,19 @@ log = logging.getLogger(__name__)
 DATASET_URI = "s3://fraudstream-lake/features/training/"
 BUCKET = "fraudstream-lake"
 
-# Guaranteed QoS memory for the train / evaluate KubernetesPodOperator pods, sized from measured
-# live peak RSS + ~30% headroom (see .claude/ongoing_docs/train-task-oom-gap.md).
+# Guaranteed QoS resources for the train / evaluate KubernetesPodOperator pods. Memory sized from
+# measured live peak RSS + ~30% headroom; CPU pinned so QoS is Guaranteed (needs cpu AND memory
+# request == limit). See .claude/ongoing_docs/train-task-oom-gap.md.
+TRAIN_POD_CPU = "2"
 TRAIN_POD_MEMORY = "3Gi"
+EVALUATE_POD_CPU = "2"
 EVALUATE_POD_MEMORY = "1536Mi"
 
 
-def guaranteed_memory(mem: str) -> dict[str, dict[str, str]]:
-    """V1ResourceRequirements kwargs pinning requests.memory == limits.memory (Guaranteed QoS)."""
-    return {"requests": {"memory": mem}, "limits": {"memory": mem}}
+def guaranteed_resources(cpu: str, mem: str) -> dict[str, dict[str, str]]:
+    """V1ResourceRequirements kwargs pinning requests == limits for cpu and memory (Guaranteed QoS)."""
+    spec = {"cpu": cpu, "memory": mem}
+    return {"requests": dict(spec), "limits": dict(spec)}
 
 
 def check_data_partition(bucket: str, partition: str, min_rows: int = 1000, s3: Any = None) -> None:
@@ -124,7 +128,9 @@ try:
             image_pull_policy="Never",
             cmds=["python", "-m", "fraudstream.training.train"],
             service_account_name="airflow",
-            container_resources=k8s.V1ResourceRequirements(**guaranteed_memory(TRAIN_POD_MEMORY)),
+            container_resources=k8s.V1ResourceRequirements(
+                **guaranteed_resources(TRAIN_POD_CPU, TRAIN_POD_MEMORY)
+            ),
             volumes=_training_volumes,
             volume_mounts=_training_volume_mounts,
             env_vars={
@@ -143,7 +149,9 @@ try:
             image_pull_policy="Never",
             cmds=["python", "-m", "fraudstream.training.evaluate"],
             service_account_name="airflow",
-            container_resources=k8s.V1ResourceRequirements(**guaranteed_memory(EVALUATE_POD_MEMORY)),
+            container_resources=k8s.V1ResourceRequirements(
+                **guaranteed_resources(EVALUATE_POD_CPU, EVALUATE_POD_MEMORY)
+            ),
             volumes=_training_volumes,
             volume_mounts=_training_volume_mounts,
             env_vars={
