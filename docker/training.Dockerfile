@@ -1,8 +1,8 @@
 FROM python:3.11-slim-bookworm AS builder
 WORKDIR /build
 RUN pip install uv
-COPY pyproject.toml uv.lock ./
-RUN uv sync --no-dev --no-install-project
+RUN uv venv .venv && uv pip install --python .venv/bin/python \
+    pandas scikit-learn "xgboost>=3.2.0" mlflow boto3 pydantic pyyaml matplotlib pyarrow
 
 FROM python:3.11-slim-bookworm
 WORKDIR /app
