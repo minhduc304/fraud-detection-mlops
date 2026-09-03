@@ -21,7 +21,7 @@ spec:
             - containerPort: 8000
           env:
             - name: MLFLOW_TRACKING_URI
-              value: http://mlflow:5000
+              value: http://mlflow.fraudstream.svc.cluster.local:5000
           readinessProbe:
             httpGet:
               path: /health
