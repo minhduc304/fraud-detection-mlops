@@ -22,6 +22,8 @@ TRAIN_POD_CPU = "2"
 TRAIN_POD_MEMORY = "3Gi"
 EVALUATE_POD_CPU = "2"
 EVALUATE_POD_MEMORY = "1536Mi"
+FEATURE_BUILD_POD_CPU = "2"
+FEATURE_BUILD_POD_MEMORY = "1Gi"
 
 
 def guaranteed_resources(cpu: str, mem: str) -> dict[str, dict[str, str]]:
@@ -114,6 +116,9 @@ try:
             image_pull_policy="Never",
             cmds=["python", "-m", "fraudstream.training.build_features_retrain"],
             service_account_name="airflow",
+            container_resources=k8s.V1ResourceRequirements(
+                **guaranteed_resources(FEATURE_BUILD_POD_CPU, FEATURE_BUILD_POD_MEMORY)
+            ),
             volumes=_training_volumes,
             volume_mounts=_training_volume_mounts,
             is_delete_operator_pod=True,

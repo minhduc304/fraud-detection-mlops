@@ -52,11 +52,14 @@ def test_training_pod_resources_are_set() -> None:
     from airflow.dags.retrain_dag import (
         EVALUATE_POD_CPU,
         EVALUATE_POD_MEMORY,
+        FEATURE_BUILD_POD_CPU,
+        FEATURE_BUILD_POD_MEMORY,
         TRAIN_POD_CPU,
         TRAIN_POD_MEMORY,
     )
 
     assert TRAIN_POD_CPU and TRAIN_POD_MEMORY and EVALUATE_POD_CPU and EVALUATE_POD_MEMORY
+    assert FEATURE_BUILD_POD_CPU and FEATURE_BUILD_POD_MEMORY
 
 
 def test_compute_psi_identical_distributions() -> None:
