@@ -30,6 +30,25 @@ jobs:
           docker push "$IMAGE"
           echo "image=$IMAGE" >> "$GITHUB_OUTPUT"
 
+  build-push-training:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Build and push
+        run: |
+          IMAGE="ghcr.io/minhduc304/fraudstream-training:${{ github.sha }}"
+          docker build -f docker/training.Dockerfile --build-arg GIT_SHA=${{ github.sha }} -t "$IMAGE" .
+          docker push "$IMAGE"
+
   mlflow-quality-gate:
     runs-on: ubuntu-latest
     needs: [build-push]
