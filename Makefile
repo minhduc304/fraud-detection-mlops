@@ -1,4 +1,4 @@
-.PHONY: lint test train serve up mlflow-server repro ingest-up produce consume update-quality-baseline platform-up platform-down
+.PHONY: lint test train serve up mlflow-server repro ingest-up produce consume score update-quality-baseline platform-up platform-down
 
 lint:
 	uv run ruff check src/ && uv run mypy src/
@@ -29,6 +29,9 @@ produce:
 
 consume:
 	uv run python -m fraudstream.ingest.consumer
+
+score:
+	uv run python -m fraudstream.ingest.scoring_consumer
 
 # Persistent local kind cluster hosting in-cluster Airflow + mlflow (Phase 7).
 # Replaces the old compose-based `airflow-up` target — Airflow now runs in-cluster.
