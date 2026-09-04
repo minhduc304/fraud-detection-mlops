@@ -15,4 +15,4 @@ ENV PATH="/app/.venv/bin:$PATH" \
     PYTHONPATH="/app/src"
 
 USER appuser
-CMD ["/app/.venv/bin/python", "-m", "fraudstream.ingest.scoring_consumer"]
+ENTRYPOINT ["/app/.venv/bin/python", "-m", "fraudstream.ingest.scoring_consumer"]
