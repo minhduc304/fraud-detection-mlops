@@ -105,6 +105,26 @@ services:
     ports:
       - "8000:8000"
 
+  scoring-consumer:
+    build:
+      context: .
+      dockerfile: docker/scoring_consumer.Dockerfile
+    networks: [fraudstream]
+    restart: on-failure
+    depends_on:
+      - kafka
+      - schema-registry
+      - serving
+    environment:
+      SERVING_URL: http://serving:8000
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    command:
+      - --bootstrap-servers
+      - kafka:29092
+      - --schema-registry-url
+      - http://schema-registry:8081
+
   prometheus:
     image: prom/prometheus:v2.51.2
     networks: [fraudstream]
