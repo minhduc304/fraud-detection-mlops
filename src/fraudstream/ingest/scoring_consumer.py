@@ -33,6 +33,8 @@ def score_event(
         logger.warning("predict returned %s, skipping event", response.status_code)
         return "skip", None
     score = float(response.json()["score"])
+    # Hook: a `transactions.scored` publish ({txn_id, score, model_version}) would go here.
+    # Deferred — nothing consumes such a topic yet. See scoring-consumer-gap.md.
     return "ok", score
 
 
