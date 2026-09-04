@@ -2,7 +2,7 @@ FROM python:3.11-slim-bookworm AS builder
 WORKDIR /build
 RUN pip install uv
 RUN uv venv .venv && uv pip install --python .venv/bin/python \
-    pandas scikit-learn==1.9.0 xgboost==3.2.0 mlflow boto3 pydantic pyyaml matplotlib pyarrow
+    pandas numpy==2.4.6 scikit-learn==1.9.0 xgboost==3.2.0 mlflow boto3 pydantic pyyaml matplotlib pyarrow
 
 FROM python:3.11-slim-bookworm
 WORKDIR /app

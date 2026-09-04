@@ -73,15 +73,37 @@ class _FakeMessage:
 
 
 class _FakeConsumer:
-    def __init__(self, messages: list) -> None:
+    def __init__(self, messages: list, raise_first: Exception | None = None) -> None:
         self._messages = list(messages)
+        self._raise_first = raise_first
         self.closed = False
 
     def poll(self, timeout: float):
+        if self._raise_first is not None:
+            exc, self._raise_first = self._raise_first, None
+            raise exc
         return self._messages.pop(0) if self._messages else None
 
     def close(self) -> None:
         self.closed = True
+
+
+def test_run_recovers_from_consume_error() -> None:
+    from confluent_kafka import KafkaError
+    from confluent_kafka.error import ConsumeError
+
+    calls: list[httpx.Request] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        calls.append(request)
+        return httpx.Response(200, json={"score": 0.1, "model_version": "1"})
+
+    err = ConsumeError(KafkaError(KafkaError.UNKNOWN_TOPIC_OR_PART))
+    consumer = _FakeConsumer([_FakeMessage(_event())], raise_first=err)
+    with _client(handler) as client:
+        run(consumer, client, "http://serving:8000", poll_timeout=0.0, max_messages=1)
+    assert len(calls) == 1
+    assert consumer.closed
 
 
 def test_run_honors_max_messages() -> None:

@@ -5,7 +5,7 @@ RUN pip install uv
 # needs these to run app.py/model_loader.py/prediction_logger.py + deserialize the
 # champion model. Skips dvc/confluent-kafka/lightgbm/httpx, which serving never imports.
 RUN uv venv .venv && uv pip install --python .venv/bin/python \
-    fastapi uvicorn pandas mlflow boto3 prometheus-client pydantic scikit-learn==1.9.0 xgboost==3.2.0
+    fastapi uvicorn pandas numpy==2.4.6 mlflow boto3 prometheus-client pydantic scikit-learn==1.9.0 xgboost==3.2.0
 
 FROM python:3.11-slim-bookworm
 WORKDIR /app

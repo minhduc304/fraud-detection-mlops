@@ -5,6 +5,7 @@ from typing import Any, cast
 
 import httpx
 from confluent_kafka import DeserializingConsumer
+from confluent_kafka.error import ConsumeError
 from confluent_kafka.schema_registry import SchemaRegistryClient
 from confluent_kafka.schema_registry.avro import AvroDeserializer
 from confluent_kafka.serialization import StringDeserializer
@@ -66,7 +67,11 @@ def run(
     consumed = 0
     try:
         while max_messages < 0 or consumed < max_messages:
-            msg = consumer.poll(poll_timeout)
+            try:
+                msg = consumer.poll(poll_timeout)
+            except ConsumeError as exc:
+                logger.warning("consume error, retrying: %s", exc)
+                continue
             if msg is None:
                 continue
             if msg.error():
