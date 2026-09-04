@@ -12,9 +12,17 @@ class _FakeModelVersion:
         self.version = version
 
 
+class _RawModel:
+    def predict_proba(self, df: object) -> np.ndarray:
+        return np.array([[0.58, 0.42]])
+
+
 class _FixtureModel:
     def predict(self, df: object) -> np.ndarray:
-        return np.array([0.42])
+        return np.array([0.0])
+
+    def get_raw_model(self) -> _RawModel:
+        return _RawModel()
 
 
 def _valid_txn() -> dict:

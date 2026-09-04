@@ -57,7 +57,8 @@ def create_app(
         start = time.perf_counter()
         df = pd.DataFrame([txn.model_dump()])
         features = build_features(df)
-        score = float(model.predict(features)[0])
+        raw_model = model.get_raw_model()
+        score = float(raw_model.predict_proba(features)[:, 1][0])
         PREDICTION_LATENCY.observe(time.perf_counter() - start)
         PREDICTION_SCORE.observe(score)
         for col in FEATURE_COLUMNS:
